@@ -2,8 +2,8 @@
 * Author: Xees
 * FileName: TowerDefense.h
 * Description: This file is used for definitions and requirements of the tower defense system
-* Version: 1.0
-* Status: functional
+* Version: 2.1
+* Status: Needs an Overhaul!
 */
 #include "ScriptPCH.h"
 #include "TowerDefense.h"
@@ -267,12 +267,7 @@ public:
         }
 
         void StartWalkingToEndPoint() { 
-            if(MobPathId){
-                me->GetMotionMaster()->MovePath(MobPathId,false);
-                sLog->outBasic("TowerDefense: Creature entry: [%u], has loaded path id: [%u].", me->GetEntry(), MobPathId);
-            }
-            else
-                sLog->outBasic("TowerDefense: Creature entry: [%u] could not load path id, please check path id in the database.", me->GetEntry());
+            (MobPathId) ? me->GetMotionMaster()->MovePath(MobPathId,false) : sLog->outBasic("TowerDefense: Creature entry: [%u] could not load path id, please check path id in the database.", me->GetEntry());
         }
 
         uint32 GetMobSpellByCastType(TDEventSpellCastType type) {
@@ -295,7 +290,7 @@ public:
 
             switch(AOESpell)
             {
-            case 15571: // TEMP
+            case 15571: // This is the case where a creature enters the radius of an ice tower, it causes the creatures speed to reset to a lower speed
                 SetSpeeds(MobSpeed * 0.7f);
                 break;
             }
@@ -333,9 +328,7 @@ public:
             }
             return NULL;
         }
-        /*
-        * Used to detect of Guard affects nearby creatures with AOE spells.
-        */
+
         bool IsAOEGuard(Unit* guard)
         {
             if(!guard)

@@ -2,8 +2,8 @@
 * Author: Xees
 * FileName: TowerDefense.h
 * Description: This file is used for definitions and requirements of the tower defense system
-* Version: 1.0
-* Status: functional
+* Version: 2.1
+* Status: Needs an Overhaul!
 */
 #include "ScriptPCH.h"
 #include "TowerDefense.h"
