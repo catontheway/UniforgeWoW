@@ -237,8 +237,6 @@ public:
 
         void InitOnCreate()
         {
-            if(!instance)
-                return;
             me->SetMaxHealth(MobHealth);
             me->SetHealth(me->GetMaxHealth());
             SetSpeeds(MobSpeed);
@@ -246,9 +244,6 @@ public:
 
         void SetSpeeds(float speed)
         {
-            if(!instance)
-                return;
-
             me->SetSpeed(MOVE_WALK,  speed, true);
             me->SetWalk(true);
 
@@ -265,41 +260,35 @@ public:
         bool WaveIsRunning()
         {
             if(!instance) return false;
-            (instance->GetEventStatus() >= TD_EVENT_STATUS_RUNNING) ? true : false;
+
+            if(instance->GetEventStatus() >= TD_EVENT_STATUS_RUNNING)
+                return true;
             return false;
         }
 
         void StartWalkingToEndPoint() { 
-            if(!instance)  return;
             if(MobPathId){
                 me->GetMotionMaster()->MovePath(MobPathId,false);
-                instance->RecordLog("TowerDefense: Creature entry: [%u], has loaded path id: [%u].", me->GetEntry(), MobPathId);
+                sLog->outBasic("TowerDefense: Creature entry: [%u], has loaded path id: [%u].", me->GetEntry(), MobPathId);
             }
             else
                 sLog->outBasic("TowerDefense: Creature entry: [%u] could not load path id, please check path id in the database.", me->GetEntry());
         }
 
-        uint32 GetMobSpellByCastType(TDEventSpellCastType type)
-        {
+        uint32 GetMobSpellByCastType(TDEventSpellCastType type) {
             if(!monster) return 0;
             return monster->GetSpellIdByCastType(type);
         }
 
-        void CastOnSpawnSpells()
-        {
-            if(!instance) return;
-            Player* player = instance->GetPlayer();
-            if(!player)
-                return;
+        void CastOnSpawnSpells() {
+            if(!player) return;
 
             me->CastSpell(me, GetMobSpellByCastType(TD_CAST_ON_SPAWN_CAST_SELF), true);
             me->CastSpell(player, GetMobSpellByCastType(TD_CAST_ON_SPAWN_CAST_TARGET), true);
         }
 
-        void DoGuardAOEEffects(Unit* guard)
-        {
-            if(!instance)
-                return;
+        void DoGuardAOEEffects(Unit* guard) {
+            if(!instance) return;
 
             uint32 AOESpell = instance->GetGuardSpellByCastType(guard->GetGUID(), TD_CAST_AOE_CAST_TARGET);
             guard->CastSpell(me, AOESpell, true);
@@ -312,10 +301,7 @@ public:
             }
         }
 
-        void StopGuardAOEEffects(Unit* guard)
-        {
-            if(!instance)
-                return;
+        void StopGuardAOEEffects(Unit* guard){
             SetSpeeds(MobSpeed);
         }
 
@@ -423,15 +409,12 @@ public:
 
         void UpdateAI(const uint32 diff)
         {
-            if(!instance)
-                return;
+            if(!instance) return;
 
             Player* player = instance->GetPlayer();
-            if(!player || instance->GetEventStatus() < TD_EVENT_STATUS_TELEPORT)
-                me->DespawnOrUnsummon();
+            if(!player || instance->GetEventStatus() < TD_EVENT_STATUS_TELEPORT) me->DespawnOrUnsummon();
 
-            if(!WaveIsRunning())
-                return;
+            if(!WaveIsRunning()) return;
 
             if (MobSpawnTimer <= diff && !MobStartedPath)
             {

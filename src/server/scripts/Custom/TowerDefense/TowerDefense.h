@@ -290,9 +290,15 @@ struct MonsterInfo
 {
     MonsterInfo() : Entry(0), WaveId(0), PathId(0), Power(0), Bounty(0), IsRunning(false), IsAirMob(false), Health(0), Dmg(0), AttackDistance(0), AttackSpeed(0),  Speed(0),  SpellId(0) { }
 
-    void LoadBaseStats(uint32 entryId)
+    void LoadBaseStats()
     {
-        if(QueryResult queryResult = CharacterDatabase.PQuery("SELECT * FROM custom_td_base_stats WHERE creatureEntry = '%u'", entryId))
+        /*      
+               0         1                2                3                4                  5                   6               7
+            (`Id`, `creatureName`, `creatureEntry`,  `creatureCost`, `creatureDamage`, `creatureAttackDist`, `creatureAir`, `creatureBounty`,
+                  8                 9                10               11                12                 13                    14
+            `creaturePower`, `creatureHealth`, `creatureSpeed`, `creatureRunning`, `creatureType`, `creatureAttackSpeed`, `creatureGround`)
+        */
+        if(QueryResult queryResult = CharacterDatabase.PQuery("SELECT * FROM custom_td_base_stats WHERE creatureEntry = '%u'", Entry))
         {
             Field* Fields = queryResult->Fetch();
             SetDamage(Fields[4].GetUInt32());        // Set the creature damage
@@ -303,9 +309,9 @@ struct MonsterInfo
             SetHealth(Fields[9].GetUInt32());        // set the maximum health
             SetSpeed(Fields[10].GetFloat());          // set the creature speed
             SetIsRunning(Fields[11].GetBool());      // set if the creature is running on spawn or walking
-            SetAttSpeed(Fields[13].GetUInt32());
+            SetAttSpeed(Fields[13].GetUInt32());     // set the creatures attack speed
         }else
-            sLog->outBasic("TowerDefense: unable to load base stats for creature entry [%u] in the database.", entryId);
+            sLog->outBasic("TowerDefense: unable to load base stats for creature entry [%u] in the database.", Entry);
     }
 
     uint32 GetPathById()
@@ -375,7 +381,7 @@ struct MonsterInfo
 
     void Spawn(Creature* spawner)
     {
-        LoadBaseStats(Entry);
+        LoadBaseStats();
         SetPathId(GetPathById());
         Creature* me = spawner->SummonCreature(Entry, GetWaypointData(1).m_positionX, GetWaypointData(1).m_positionY, GetWaypointData(1).m_positionZ, GetWaypointData(1).m_orientation, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 3000);
         if(!me)

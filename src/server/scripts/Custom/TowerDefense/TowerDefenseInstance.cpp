@@ -203,6 +203,7 @@ void TowerDefenseInstanceScript::TowerDefenseMapInstanceScript::SetupWaves()
                         MonsterInfo* monster = Wave->AddMonster(creatureEntry);  
                         if (Monsters.find(creatureEntry) == Monsters.end()) 
                             Monsters[creatureEntry] = monster;
+                        monster->LoadBaseStats();
                     }
                 }while(creatureResult->NextRow());
             }
@@ -245,7 +246,6 @@ void TowerDefenseInstanceScript::TowerDefenseMapInstanceScript::StartEvent(Playe
     SetupEventData();
     player->AddItem(34131, 1); // add the spawning item to the player
     player->SaveToDB(); // save the player to the db in case of crash
-    player->SetBattlegroundEntryPoint(); // set this as the battleground entry point to summon the player out
     player->TeleportTo(429, 15.639082, 465.287537, -22.909771,  4.687704); // teleport to starting location
     SetEventStatus(TD_EVENT_STATUS_TELEPORT);
     switch(Action)
@@ -777,12 +777,8 @@ uint32 TowerDefenseInstanceScript::TowerDefenseMapInstanceScript::GetGuardSellPr
 
 uint32 TowerDefenseInstanceScript::TowerDefenseMapInstanceScript::GetLastPointInPath(uint32 pathId)
 {
-    uint32 lastPoint = 0;
-    if (QueryResult queryResult = WorldDatabase.PQuery("SELECT MAX(point)-1 FROM waypoint_data WHERE id = '%u'", pathId))
-    {
-        Field* Fields = queryResult->Fetch(); 
-        lastPoint = Fields[0].GetUInt32(); 
-        return lastPoint;
+    if (QueryResult queryResult = WorldDatabase.PQuery("SELECT MAX(point) FROM waypoint_data WHERE id = '%u'", pathId)){
+        return queryResult->Fetch()[0].GetUInt32();
     }else
         RecordLog("TowerDefense: There is no waypoint data for GetLastPointInPath() for path [%u].", pathId);
     return 0;
@@ -842,10 +838,9 @@ void TowerDefenseInstanceScript::TowerDefenseMapInstanceScript::HandleEventCompl
         }break;
     }
     player->DestroyItemCount(GetItemEntry(),1,true); // destroy the item from the player
-    player->TeleportToBGEntryPoint(); // teleport player to entry point
+    player->TeleportTo(1, -3673.392090, -4384.723145, 10.026433,  3.879712); // Teleport to a Neutral Mall
     player->RemoveAllAuras(); // remove all auras set by event
     player->RemoveAllAttackers(); // remove all attackers
-
     SetFinished(true); // finish the event
     SaveEventData(); // save event information
     RecordLog("TowerDefense: Player: [%s] has completed Event Id: [%u] and his event data was saved and he was teleported.", player->GetName(), GetEventId());
