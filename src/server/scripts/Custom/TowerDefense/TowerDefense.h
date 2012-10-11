@@ -19,7 +19,9 @@
 #include "SpellScript.h"
 #include "SpellAuraEffects.h"
 
-// Script names
+/*
+* The Script names to register for the system
+*/ 
 #define TD_SYSTEM_SCRIPT_NAME "custom_towerdefense_script"
 #define TD_SYSTEM_PLAYER_HOOKS_SCRIPT_NAME "custom_towerdefense_player_hooks_script"
 #define TD_NPC_SCRIPT_NAME "towerdefense_npc"
@@ -29,7 +31,9 @@
 #define TD_GUARD_SCRIPT_NAME "towerdefense_guard"
 #define TD_UPDATER_SCRIPT_NAME "towerdefense_updater"
 
-// Colored messages
+/*
+* Message colors, used to add effects, make text appear clearer.
+*/
 #define MSG_COLOR_LIGHTRED      "|cffff6060"
 #define MSG_COLOR_LIGHTBLUE     "|cff00ccff"
 #define MSG_COLOR_BLUE          "|cff0000ff"
@@ -44,7 +48,9 @@
 #define MSG_COLOR_CYAN          "|cff00ffff"
 #define MSG_COLOR_ORANGE		"|cffff9900"
 
-// Mail System Defines
+/*
+* The mail system, sending rewards to players, informing them of previous event status.
+*/
 #define TD_SYSTEM_MSG_MAIL_SUBJECT "The Tower Defense: Rewards!"
 #define TD_SYSTEM_MSG_MAIL_BODY_EVENT_UNFINISHED "Due to an unfinished event. We have added %u resources to your account!"
 #define TD_SYSTEM_MSG_MAIL_BODY_EVENT_UNFINISHED_FLED "You have lost your Tower Defense event, before you lost, you had %u resources, and was in wave %u."
@@ -52,8 +58,9 @@
 #define TD_SYSTEM_MSG_MAIL_BODY_EVENT_WON "You have completed every wave in the Tower Defense Mini Game, we have added %u resources you collected to your account."
 #define TD_SYSTEM_MAIL_TYPE MAIL_STATIONERY_GM
 
-// System messages
-
+/*
+* The system messages, send to the player in mid center of the screen or in his chatbox
+*/
 #define TD_SYSTEM_MSG_ALREADYRUNNING "The event is already running!"
 #define TD_SYSTEM_MSG_CANNOT_USE_OUTSIDE "You cannot use this item outside a running event!"
 #define TD_SYSTEM_MSG_CANNOT_START_DUE "You cannot start the event, if you are logging out, or in combat, or in a group!"
@@ -100,22 +107,28 @@
 #define TD_SYSTEM_MSG_NOT_SAME_MAP "You are not in the event instance, you have lost!"
 #define TD_SYSTEM_MSG_A_BOSS_APPEARED "A %s has appeared!"
 
-// Global Menu Texts
+/*
+* Global Menu Texts
+*/
 #define TD_TEXT_EXIT "Nevermind."
 #define TD_TEXT_GOBACK "<-- Go back"
 
-//TD_NPC_TEXT
+/*
+* The NPC menu texts before starting the event
+*/
 #define TD_NPC_TEXT_START_EVENT "I would like to play Tower Defense."
 #define TD_NPC_TEXT_EVENT_EASY "I want the easy way! [Easy Mode]"
 #define TD_NPC_TEXT_EVENT_HARD "Come at me Tower Defense! [Hard Mode]"
 #define TD_NPC_TEXT_EVENT_EXTREME "You shall not pass! [Death Mode]"
 #define TD_NPC_TEXT_SHOW_RECORDS "Can you show me my records?"
-
-//TD_VENDOR_TEXT
+/*
+* The Vendor menu texts
+*/
 #define TD_VENDOR_TEXT_EXCHANGE "Exchange all your resources into tokens!"
 #define TD_VENDOR_TEXT_LIST "Purchase an item!"
-
-//TD_ITEM_TEXT
+/*
+* The Item menu texts after starting the event
+*/
 #define TD_ITEM_TEXT_BASE_HEALTH "Base Health: %u."
 #define TD_ITEM_TEXT_CURRENT_RESOURCES "Resources: %u."
 #define TD_ITEM_TEXT_START_EVENT "Start event."
@@ -124,8 +137,9 @@
 #define TD_ITEM_TEXT_SPAWN_TOWER_MENU "Spawn a Tower."
 #define TD_ITEM_TEXT_QUIT_EVENT "Quit the event!"
 #define TD_ITEM_TEXT_NO_EVENT_DATA "You need to start the event to use this item!"
-
-//TD_GUARD_TEXT
+/*
+* The Guard menu texts
+*/
 #define TD_GUARD_TEXT_TOWER_NAME "%s."
 #define TD_GUARD_TEXT_UNIT_NAME "%s Unit."
 #define TD_GUARD_TEXT_CURRENT_RESOURCES "You have %u resources."
@@ -134,7 +148,7 @@
 
 enum TDEventInstanceMapId
 {
-    TD_EVENT_INSTANCE_MAP_ID = 429,
+    TD_INSTANCE_MAP_ID = 429,
 };
 
 enum TDEventPlayerIndex
@@ -250,16 +264,6 @@ enum TDEventMusic
     TD_ENDEVENT_MUSIC        = 15095, // Occurs when player loses the event
     TD_BASE_LOSING_HEALTH    = 15047, // Occurs when base health is below 30%
     TD_STARTWAVE_MUSIC       = 15880, // Occurs when wave is started
-};
-
-enum TDEventSpells
-{ 
-    /* Boss Spells - First Boss */
-    SPELL_KILL_ENCOUNTER_1      = 62021,
-    SPELL_ENCOUNTER_1_BOMBS     = 74463,
-    SPELL_OGRE_CURSE_VISUAL     = 36952,
-    SPELL_GROUND_ROCKETS        = 45971,
-    SPELL_RED_LIGHTNING         = 62021,
 };
 
 enum TDEventStatus
@@ -616,7 +620,7 @@ struct WaveInfo
 class TowerDefenseInstanceScript : public InstanceMapScript
 {
 public:
-    TowerDefenseInstanceScript() : InstanceMapScript(TD_SYSTEM_SCRIPT_NAME, TD_EVENT_INSTANCE_MAP_ID) { }
+    TowerDefenseInstanceScript() : InstanceMapScript(TD_SYSTEM_SCRIPT_NAME, TD_INSTANCE_MAP_ID) { }
 
     InstanceScript* GetInstanceScript(InstanceMap* map) const
     {
@@ -688,16 +692,20 @@ public:
         */
         void SetPlayer(Player* player)                          { _player = player;                                     }
         Player* GetPlayer()                                     { return _player;                                       }
-        bool IsEventDisabled()                                  { return m_eventDisabled;                               }
-        bool IsLoggingEnabled()                                 { return m_fileLogging;                                 }
-        bool IsGmDisabled()                                     { return m_disableGM;                                   }
-        bool IsAwardingFledPlayers()                            { return m_awardFled;                                   }
-        uint32 GetMapId()                                       { return SpawnCoordsPlayer.m_mapId;                     }
-        uint32 GetMinLevelRequired()                            { return m_minRequiredLevel;                            }
-        uint32 GetQuitAfterWave()                               { return m_quitAfterWave;                               }
-        uint32 GetPlatformEntry()                               { return m_platformEntry;                               }
-        uint32 GetItemEntry()                                   { return m_buildItemEntry;                              }
-        uint32 GetStartResources()                              { return m_startResources;                              }
+        bool IsEventDisabled()                                  { return disableEvent;                                  }
+        bool IsLoggingEnabled()                                 { return disableFileLog;                                }
+        bool IsGmDisabled()                                     { return disableGM;                                     }
+        bool IsAwardingFledPlayers()                            { return awardFled;                                     }
+        uint32 GetMapId()                                       { return TD_INSTANCE_MAP_ID;                            }
+        float GetPSpawnX()                                      { return pSpawnX;                                       }
+        float GetPSpawnY()                                      { return pSpawnY;                                       }
+        float GetPSpawnZ()                                      { return pSpawnZ;                                       }
+        float GetPSpawnO()                                      { return pSpawnO;                                       }
+        uint32 GetMinLevelRequired()                            { return minLvl;                                        }
+        uint32 GetQuitAfterWave()                               { return quitAfterWave;                                 }
+        uint32 GetPlatformEntry()                               { return gobPlatformEntry;                              }
+        uint32 GetItemEntry()                                   { return buildItemEntry;                                }
+        uint32 GetStartResources()                              { return startResources;                                }
 
         /*
         * External Assignment and Retrieval - WaveInfo, GuardInfo, MonsterInfo, System
@@ -749,7 +757,7 @@ public:
         void SendMailToPlayer(Player *player, uint32 playerGUID, const char *mailMessage, ...);
         uint32 GenerateEventId();
     protected:
-        EventMap Events; // TEMP
+        EventMap Events;
         Player* _player;
         Map* map;
         InstanceScript* _instance;
@@ -758,30 +766,13 @@ public:
         UNORDERED_MAP<uint64, GuardInfo*> Guards;
 
         // Configuration options
-        bool   m_eventDisabled; // if true, event cannot be started
-        uint32 m_minRequiredLevel; // minimum level required to enter the event.
-        bool   m_awardFled; // if true, player who logs out while event running gets reward.
-        bool   m_disableGM; // if true, game masters do not enter the event.
-        uint32 m_startResources; // start resources add to player when event starts
-        uint32 m_buildItemEntry; // Item entry that is used to spawn guards and start waves
-        uint32 m_quitAfterWave; // Wave id that is required before player can quit
-        bool   m_fileLogging; // if true, logging using sLog->OutBasic is activated
-        uint32 m_platformEntry; // Gameobject entry that is used to spawn guards
-        // Spawn Coords
-        WorldLocation SpawnCoordsPlayer; // this is the location of the player spawn from db
-
-        uint32 CountDown;
+        bool   disableEvent, awardFled, disableGM, disableFileLog;
+        uint32 minLvl, startResources, buildItemEntry, quitAfterWave, gobPlatformEntry;
+        float pSpawnX, pSpawnY,pSpawnZ,pSpawnO;
 
         // Variables used by the system.
-        uint32 _playerGUID;
-        uint32 _highEventId;
-        uint32 _spawntimer; // time to wait between each creature spawn
-        uint32 _eventId; // max event id from db table 'custom_td_events', used to generate new event id
-        uint32 _resources; // resources that player has
-        uint32 _baseHealth; // base health for player
-        uint32 _units; // number of spawned units in current wave
-        uint32 _currentWave; // current wave id
-        bool _eventFinished; // if the event finished or not
+        uint32 CountDown, _playerGUID, _highEventId, _spawntimer, _eventId, _resources, _baseHealth, _units, _currentWave;
+        bool _eventFinished;
         TDEventStatus eventStatus;
         TDEventMode eventMode;
         std::string eventDate;

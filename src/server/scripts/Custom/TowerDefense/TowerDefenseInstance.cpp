@@ -19,53 +19,29 @@ const char *TowerDefensePlayerStatFields[TD_PLAYER_STAT_MAX] =
 
 void TowerDefenseInstanceScript::TowerDefenseMapInstanceScript::LoadConfigData()
 {
-    /* 
-    * These are the default values for debug mode, in release mode, configuration loads from the database
-    * but in debug mode, configuration is loaded from these hardcoded values.
-    */
-    SpawnCoordsPlayer.m_mapId = 429;
-    SpawnCoordsPlayer.m_positionX = 15.639082;
-    SpawnCoordsPlayer.m_positionY = 465.287537;
-    SpawnCoordsPlayer.m_positionZ = -22.909771;
-    SpawnCoordsPlayer.m_orientation = 4.687704;
-    m_minRequiredLevel = 255;
-    m_awardFled = true;
-    m_disableGM = false;
-    m_startResources = 30;
-    m_eventDisabled = false;
-    m_buildItemEntry = 34131;
-    m_quitAfterWave = 1;
-    m_fileLogging = false;
-    m_platformEntry = 800501;
-
-    QueryResult queryResult = CharacterDatabase.Query("SELECT optionIndex, optionValue FROM custom_td_config ORDER BY optionIndex ASC LIMIT 1");
+    QueryResult queryResult = CharacterDatabase.Query("SELECT * FROM custom_td_config");
     if(!queryResult){
         RecordLog("TowerDefense: Unable to load tables required, please check your character database for the necessary tables.");
         return;
     }else{
-        do
-        {
             Field *Fields = queryResult->Fetch();
-            uint32 Index = Fields[0].GetUInt32();
-            switch(Index)
-            {
-            case 0:		SpawnCoordsPlayer.m_mapId		    = Fields[1].GetUInt32();	break;
-            case 1:		SpawnCoordsPlayer.m_positionX	    = Fields[1].GetFloat();		break;
-            case 2:		SpawnCoordsPlayer.m_positionY	    = Fields[1].GetFloat();		break;
-            case 3:		SpawnCoordsPlayer.m_positionZ	    = Fields[1].GetFloat();		break;
-            case 4:		SpawnCoordsPlayer.m_orientation	    = Fields[1].GetFloat();		break;
-            case 5:	    m_minRequiredLevel			        = Fields[1].GetUInt32();	break;
-            case 6:		m_awardFled					        = Fields[1].GetBool();		break;
-            case 7:		m_disableGM					        = Fields[1].GetBool();		break;
-            case 8:	    m_startResources			        = Fields[1].GetUInt32();	break;
-            case 9:		m_eventDisabled				        = Fields[1].GetBool();		break;
-            case 10:	m_buildItemEntry		            = Fields[1].GetUInt32();	break;
-            case 11:	m_quitAfterWave		                = Fields[1].GetUInt32();	break;
-            case 12:	m_fileLogging		                = Fields[1].GetBool();	    break;
-            case 13:	m_platformEntry		                = Fields[1].GetUInt32();	break;
-            }
-
-        }while(queryResult->NextRow());
+            /*
+                 0           1         2          3          4          5            6             7                 8               9                10                 11                12
+            (`pSpawnX`, `pSpawnY`, `pSpawnZ`, `pSpawnO`, `minLvl`, `awardFled`, `disableGM`, `startResources`, `disableEvent`, `buildItemEntry`, `quitAfterWave`, `disableFileLog`, `gobPlatformEntry`)
+            */
+            pSpawnX             = Fields[0].GetFloat();
+            pSpawnY             = Fields[1].GetFloat();
+            pSpawnZ             = Fields[2].GetFloat();
+            pSpawnO             = Fields[3].GetFloat();
+            minLvl              = Fields[4].GetUInt32();
+            awardFled		    = Fields[5].GetBool();
+            disableGM		    = Fields[6].GetBool();
+            startResources      = Fields[7].GetUInt32();
+            disableEvent		= Fields[8].GetBool();
+            buildItemEntry      = Fields[9].GetUInt32();
+            quitAfterWave       = Fields[10].GetUInt32();
+            disableFileLog		= Fields[11].GetBool();
+            gobPlatformEntry    = Fields[12].GetUInt32();
     } 
 
     if(QueryResult IdResult = CharacterDatabase.Query("SELECT MAX(Id) FROM custom_td_events"))
@@ -74,7 +50,6 @@ void TowerDefenseInstanceScript::TowerDefenseMapInstanceScript::LoadConfigData()
         _highEventId = 0;
     CountDown = 0;
     RecordLog("TowerDefense: Configuration table was loaded.");
-
     return;
 }
 
@@ -246,7 +221,7 @@ void TowerDefenseInstanceScript::TowerDefenseMapInstanceScript::StartEvent(Playe
     SetupEventData();
     player->AddItem(34131, 1); // add the spawning item to the player
     player->SaveToDB(); // save the player to the db in case of crash
-    player->TeleportTo(429, 15.639082, 465.287537, -22.909771,  4.687704); // teleport to starting location
+    player->TeleportTo(GetMapId(), GetPSpawnX(), GetPSpawnY(), GetPSpawnZ(), GetPSpawnO()); // teleport to starting location
     SetEventStatus(TD_EVENT_STATUS_TELEPORT);
     switch(Action)
     {
@@ -777,8 +752,10 @@ uint32 TowerDefenseInstanceScript::TowerDefenseMapInstanceScript::GetGuardSellPr
 
 uint32 TowerDefenseInstanceScript::TowerDefenseMapInstanceScript::GetLastPointInPath(uint32 pathId)
 {
+    uint32 lastPoint = 0;
     if (QueryResult queryResult = WorldDatabase.PQuery("SELECT MAX(point) FROM waypoint_data WHERE id = '%u'", pathId)){
-        return queryResult->Fetch()[0].GetUInt32();
+        lastPoint = queryResult->Fetch()[0].GetUInt32();
+        return --lastPoint;
     }else
         RecordLog("TowerDefense: There is no waypoint data for GetLastPointInPath() for path [%u].", pathId);
     return 0;
@@ -796,7 +773,7 @@ void TowerDefenseInstanceScript::TowerDefenseMapInstanceScript::HandleEventCompl
     {
     case TD_EVENT_COMPLETE_UNFINISHED:
         {
-            if(m_awardFled){
+            if(IsAwardingFledPlayers()){
                 UpdatePlayerStats(GetPlayerGUID(), TD_PLAYER_STAT_CURRENT_RESOURCES, GetResources());
                 SendMailToPlayer(NULL, GetPlayerGUID(), TD_SYSTEM_MSG_MAIL_BODY_EVENT_UNFINISHED, GetResources());
                 RecordLog("TowerDefense: Player: [%s] has received: [%u] resources due to an unfinished Event Id: [%u].", player->GetName(), GetResources(), GetEventId());

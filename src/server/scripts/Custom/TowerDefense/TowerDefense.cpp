@@ -89,7 +89,8 @@ public:
     {
         player->PlayerTalkClass->ClearMenus();
 
-        if(player->GetMapId() != 429) { return false; }
+        if(player->GetMapId() != TD_INSTANCE_MAP_ID)
+            return false;
 
         // Load instance script.
         TowerDefenseInstanceScript::TowerDefenseMapInstanceScript* instance = static_cast<TowerDefenseInstanceScript::TowerDefenseMapInstanceScript*>(player->GetInstanceScript());
@@ -278,8 +279,10 @@ public:
         void CastOnSpawnSpells() {
             if(!player) return;
 
-            me->CastSpell(me, GetMobSpellByCastType(TD_CAST_ON_SPAWN_CAST_SELF), true);
-            me->CastSpell(player, GetMobSpellByCastType(TD_CAST_ON_SPAWN_CAST_TARGET), true);
+            if(GetMobSpellByCastType(TD_CAST_ON_SPAWN_CAST_SELF))
+                me->CastSpell(me, GetMobSpellByCastType(TD_CAST_ON_SPAWN_CAST_SELF), true);
+            if(GetMobSpellByCastType(TD_CAST_ON_SPAWN_CAST_TARGET))
+                me->CastSpell(player, GetMobSpellByCastType(TD_CAST_ON_SPAWN_CAST_TARGET), true);
         }
 
         void DoGuardAOEEffects(Unit* guard) {
@@ -352,7 +355,6 @@ public:
                 instance->UpdateHealth(MobPower);
                 instance->UpdateUnits(TD_EVENT_DEC, 1);
                 me->DespawnOrUnsummon();
-                sLog->outBasic("TowerDefense: Creature Entry %u reached last waypoint with id %u in waypoint path %u.",  me->GetEntry(), instance->GetLastPointInPath(MobPathId), MobPathId);
             }
             return;
         }
@@ -364,9 +366,9 @@ public:
             if(me->GetDistance(target->GetPositionX(),target->GetPositionY(),target->GetPositionZ()) > 8)
                 me->SetFacingTo(target->GetOrientation());
 
-            if(MobIsAirMob && instance->GetGuardIsAntiAir(target->GetGUID())) // if mob is air mob, and attacker is anti air, they can attack him
+            if(MobIsAirMob && instance->GetGuardIsAntiAir(target->GetGUID()) && MobSpellId) // if mob is air mob, and attacker is anti air, they can attack him
                 me->CastSpell(target, MobSpellId, true);
-            else if(!MobIsAirMob && instance->GetGuardIsAntiGround(target->GetGUID())) // if mob is ground mob, and attacker is ground, then attack
+            else if(!MobIsAirMob && instance->GetGuardIsAntiGround(target->GetGUID()) && MobSpellId) // if mob is ground mob, and attacker is ground, then attack
                 me->CastSpell(target, MobSpellId, true);
         }
 
@@ -411,20 +413,21 @@ public:
 
             if (MobSpawnTimer <= diff && !MobStartedPath)
             {
+                me->CastSpell(me, instance->GetSpellIdByUniqueId(1), true);
                 InitOnCreate();
                 StartWalkingToEndPoint();
                 CastOnSpawnSpells();
-                me->CastSpell(me, instance->GetSpellIdByUniqueId(1), true);
                 MobStartedPath = true;
             } else MobSpawnTimer -= diff;
 
             if (MobEffectTimer <= diff)
             {
                 Unit* guard = GetClosestAOEGuard();
-                if(guard && me->GetDistance(guard->GetPositionX(),guard->GetPositionY(),guard->GetPositionZ()) > 15)
+                // will need to rewrite the entire guard script, because this is just stupid.
+                if(guard && me->GetDistance(guard->GetPositionX(),guard->GetPositionY(),guard->GetPositionZ()) > 8)
                     StopGuardAOEEffects(guard);
 
-                if(guard && me->GetDistance(guard->GetPositionX(),guard->GetPositionY(),guard->GetPositionZ()) < 15)
+                if(guard && me->GetDistance(guard->GetPositionX(),guard->GetPositionY(),guard->GetPositionZ()) < 8)
                     DoGuardAOEEffects(guard);
 
                 if (!WaveIsRunning() || IsCasting())
@@ -809,8 +812,6 @@ public:
     };
 };
 
-#define TowerDefenseToken 40752
-
 class TD_VENDOR : public CreatureScript
 {
 public:
@@ -840,7 +841,7 @@ public:
             if(uint32 ResAmount = GetAmountOfResourcesPlayerHas(player))
             {
                 UpdatePlayerResources(player, TD_EVENT_DEC, ResAmount);
-                player->AddItem(TowerDefenseToken, ResAmount);
+                player->AddItem(40752, ResAmount);
                 ChatHandler(player).SendSysMessage("All your resources were exchanged.");
             }else
                 ChatHandler(player).SendSysMessage("You don't have any resources!");
