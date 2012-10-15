@@ -33,8 +33,9 @@ public:
 
         static ChatCommand commandTable[] =
         {
-            { "xprate",         SEC_PLAYER,         false,  &HandleXpRateCommand,       "", NULL },
-            { "dev",            SEC_ADMINISTRATOR,  false,  &HandleDevCommand,          "", NULL },
+            { "castall",        SEC_PLAYER,        false,  &HandleCastAllCommand,      "", NULL },
+            { "xprate",         SEC_PLAYER,        false,  &HandleXpRateCommand,       "", NULL },
+            { "dev",            SEC_ADMINISTRATOR, false,  &HandleDevCommand,          "", NULL },
             { "emethtimer",     SEC_PLAYER,  	   false,  &HandleEmethCommand,        "", NULL },
             { "dantetimer",     SEC_PLAYER,  	   false,  &HandleDatraelCommand,      "", NULL },
             { "fixphase",       SEC_PLAYER,  	   false,  &HandleFixPhaseCommand,     "", NULL },
@@ -43,6 +44,37 @@ public:
             { NULL,             0,                  false,  NULL,                       "", NULL }
         };
         return commandTable;
+    }
+
+    static bool HandleCastAllCommand(ChatHandler* handler, const char *args)
+    {
+        if (!*args)
+            return false;
+
+        // number or [name] Shift-click form |color|Hspell:spell_id|h[name]|h|r or Htalent form
+        uint32 spell = handler->extractSpellIdFromLink((char*)args);
+        if (!spell || !sSpellMgr->GetSpellInfo(spell))
+        {
+            handler->PSendSysMessage(LANG_COMMAND_NOSPELLFOUND);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        char* trig_str = strtok(NULL, " ");
+        if (trig_str)
+        {
+            int l = strlen(trig_str);
+            if (strncmp(trig_str, "triggered", l) != 0)
+                return false;
+        }
+
+        bool triggered = (trig_str != NULL);
+
+        TRINITY_READ_GUARD(HashMapHolder<Player>::LockType, *HashMapHolder<Player>::GetLock());
+        HashMapHolder<Player>::MapType const& m = sObjectAccessor->GetPlayers();
+        for (HashMapHolder<Player>::MapType::const_iterator itr = m.begin(); itr != m.end(); ++itr)
+            itr->second->CastSpell(itr->second, spell, triggered);
+        return true;
     }
 
 	// Allow the player to set their own exp modifier
